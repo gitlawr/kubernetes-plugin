@@ -5,8 +5,10 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateEncodingException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -16,7 +18,6 @@ import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.durabletask.executors.Messages;
 import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
-import org.jvnet.localizer.Localizable;
 import org.jvnet.localizer.ResourceBundleHolder;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -172,15 +173,13 @@ public class KubernetesSlave extends AbstractCloudSlave {
             return;
         }
 
-        OfflineCause offlineCause = OfflineCause.create(new Localizable(HOLDER, "offline"));
-
-        Future<?> disconnected = computer.disconnect(offlineCause);
-        // wait a bit for disconnection to avoid stack traces in logs
+        // disconnect the node the first thing to ensure connection is gracefully closed
+        Future<?> disconnect = computer.disconnect(OfflineCause.create(hudson.model.Messages._Hudson_NodeBeingRemoved()));
         try {
-            disconnected.get(DISCONNECTION_TIMEOUT, TimeUnit.SECONDS);
-        } catch (Exception e) {
-            String msg = String.format("Ignoring error waiting for agent disconnection %s: %s", name, e.getMessage());
-            LOGGER.log(Level.INFO, msg, e);
+            disconnect.get(60, TimeUnit.SECONDS);
+            LOGGER.log(Level.INFO, "Disconnected computer: {0}", name);
+        } catch (ExecutionException | TimeoutException e) {
+            LOGGER.log(Level.INFO, "Error gracefully disconnecting computer, will terminate: {0}", name);
         }
 
         if (getCloudName() == null) {
@@ -203,7 +202,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
         } catch (UnrecoverableKeyException | CertificateEncodingException | NoSuchAlgorithmException
                 | KeyStoreException e) {
             String msg = String.format("Failed to connect to cloud %s", getCloudName());
-            e.printStackTrace(listener.fatalError(msg));
+            listener.fatalError(msg);
             return;
         }
 
@@ -227,7 +226,6 @@ public class KubernetesSlave extends AbstractCloudSlave {
         String msg = String.format("Terminated Kubernetes instance for agent %s/%s", actualNamespace, name);
         LOGGER.log(Level.INFO, msg);
         listener.getLogger().println(msg);
-        LOGGER.log(Level.INFO, "Disconnected computer {0}", name);
     }
 
     @Override
