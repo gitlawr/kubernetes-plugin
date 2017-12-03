@@ -174,6 +174,31 @@ public class PodTemplateUtils {
     }
 
     /**
+     * parse Pod template image if label is using the ${LABEL} placeholder
+     * @param template
+     * @param label from the job
+     * @return parsed pod template
+     */
+    static PodTemplate parseTemplateLabel(PodTemplate template, Label label) {
+        if( "${LABEL}".equals(template.getLabel())){
+            //parse and return cloned template object if matching, so that singleton templates is not modified.
+	        try {
+	            PodTemplate result = (PodTemplate) template.clone();
+		        if(label.isAtom() && result.getLabel().equals("${LABEL}") ){
+		            result.setLabel(label.getExpression());
+		            for( ContainerTemplate container : result.getContainers()){
+		                container.setImage(container.getImage().replace("${LABEL}", label.getExpression()));
+		            }
+		        }
+		        return result;
+            } catch (CloneNotSupportedException e) {
+                e.printStackTrace();
+            }
+        }
+        return template;
+    }
+
+    /**
      * Unwraps the hierarchy of the PodTemplate.
      *
      * @param template                The template to unwrap.
@@ -194,6 +219,9 @@ public class PodTemplateUtils {
     public static PodTemplate getTemplateByLabel(@CheckForNull Label label, Collection<PodTemplate> templates) {
         for (PodTemplate t : templates) {
             if ((label == null && t.getNodeUsageMode() == Node.Mode.NORMAL) || (label != null && label.matches(t.getLabelSet()))) {
+                return t;
+            }
+            if (label.isAtom() && t.getLabel().contains("${LABEL}")) {
                 return t;
             }
         }

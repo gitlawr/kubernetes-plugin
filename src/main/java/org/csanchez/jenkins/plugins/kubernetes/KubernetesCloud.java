@@ -362,6 +362,7 @@ public class KubernetesCloud extends Cloud {
         try {
 
             LOGGER.log(Level.INFO, "Excess workload after pending Spot instances: " + excessWorkload);
+            LOGGER.log(Level.INFO, "TEST CUSTOM ");
 
             List<NodeProvisioner.PlannedNode> r = new ArrayList<NodeProvisioner.PlannedNode>();
 
@@ -369,13 +370,14 @@ public class KubernetesCloud extends Cloud {
 
             for (PodTemplate t: templates) {
                 LOGGER.log(Level.INFO, "Template: " + t.getDisplayName());
+                PodTemplate parsed = PodTemplateUtils.parseTemplateLabel(t, label);
                 for (int i = 1; i <= excessWorkload; i++) {
-                    if (!addProvisionedSlave(t, label)) {
+                    if (!addProvisionedSlave(parsed, label)) {
                         break;
                     }
 
-                    r.add(new NodeProvisioner.PlannedNode(t.getDisplayName(), Computer.threadPoolForRemoting
-                                .submit(new ProvisioningCallback(this, t, label)), 1));
+                    r.add(new NodeProvisioner.PlannedNode(parsed.getDisplayName(), Computer.threadPoolForRemoting
+                                .submit(new ProvisioningCallback(this, parsed, label)), 1));
                 }
                 if (r.size() > 0) {
                     // Already found a matching template
@@ -464,6 +466,9 @@ public class KubernetesCloud extends Cloud {
         ArrayList<PodTemplate> podList = new ArrayList<PodTemplate>();
         for (PodTemplate t : templates) {
             if ((label == null && t.getNodeUsageMode() == Node.Mode.NORMAL) || (label != null && label.matches(t.getLabelSet()))) {
+                podList.add(t);
+            }
+            if (label.isAtom() && t.getLabel().contains("${LABEL}")) {
                 podList.add(t);
             }
         }

@@ -17,7 +17,7 @@ import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 
-public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate> implements Serializable {
+public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate> implements Serializable,Cloneable {
 
     private static final long serialVersionUID = 4212681620316294146L;
 
@@ -210,6 +210,10 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         this.resourceRequestCpu = resourceRequestCpu;
     }
 
+    @Override
+    public Object clone() throws CloneNotSupportedException {
+        return super.clone();
+    }
     @Extension
     @Symbol("containerTemplate")
     public static class DescriptorImpl extends Descriptor<ContainerTemplate> {

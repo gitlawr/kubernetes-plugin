@@ -62,7 +62,7 @@ class ProvisioningCallback implements Callable<Node> {
             retentionStrategy = new CloudRetentionStrategy(t.getIdleMinutes());
         }
 
-        final PodTemplate unwrappedTemplate = PodTemplateUtils.unwrap(cloud.getTemplate(label),
+        final PodTemplate unwrappedTemplate = PodTemplateUtils.unwrap(t,
                 cloud.getDefaultsProviderTemplate(), cloud.getTemplates());
         return new KubernetesSlave(unwrappedTemplate, unwrappedTemplate.getName(), cloud.name,
                 unwrappedTemplate.getLabel(), retentionStrategy);

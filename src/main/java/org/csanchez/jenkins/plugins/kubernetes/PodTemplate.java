@@ -36,7 +36,7 @@ import hudson.tools.ToolLocationNodeProperty;
  *
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
  */
-public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements Serializable {
+public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements Serializable,Cloneable {
 
     private static final long serialVersionUID = 3285310269140845583L;
 
@@ -591,5 +591,18 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         public String getDisplayName() {
             return "Kubernetes Pod Template";
         }
+    }
+
+    @Override
+    public Object clone() throws CloneNotSupportedException {
+        //FIXME not a total deep copy.
+        //simply clone containers here for label substitution
+        PodTemplate cloned = (PodTemplate)super.clone();
+        List<ContainerTemplate> clonedContainers = new ArrayList<ContainerTemplate>();
+        for( ContainerTemplate container: containers){
+            clonedContainers.add((ContainerTemplate)container.clone());
+        }
+        cloned.containers = clonedContainers;
+        return cloned;
     }
 }
